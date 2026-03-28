@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Teoría de Conjuntos</title>
+  <style>
+    :root {
+      --color-primary:      #2563eb;
+      --color-primary-dark: #1e40af;
+      --color-accent:       #10b981;
+      --color-error:        #ef4444;
+      --color-error-bg:     #fef2f2;
+      --color-bg:           #f1f5f9;
+      --color-surface:      #ffffff;
+      --color-border:       #e2e8f0;
+      --color-text:         #1e293b;
+      --color-text-muted:   #64748b;
+      --radius:             8px;
+      --shadow:             0 1px 3px rgba(0,0,0,0.1);
+      --shadow-md:          0 4px 6px rgba(0,0,0,0.07);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--color-bg);
+      color: var(--color-text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ─────────────────────────────────── */
+    header {
+      background: var(--color-primary);
+      color: white;
+      padding: 1.5rem 2rem;
+      text-align: center;
+      box-shadow: var(--shadow-md);
+    }
+    header h1 { font-size: 1.6rem; font-weight: 700; }
+    header p  { font-size: 0.9rem; opacity: 0.85; margin-top: 0.25rem; }
+
+    /* ── Error Banner ────────────────────────────── */
+    #error-banner {
+      background: var(--color-error-bg);
+      border-left: 4px solid var(--color-error);
+      color: var(--color-error);
+      padding: 0.75rem 1.5rem;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    #error-banner.hidden { display: none; }
+
+    /* ── App Grid ───────────────────────────────── */
+    #app {
+      max-width: 900px;
+      margin: 1.5rem auto;
+      padding: 0 1rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    section {
+      background: var(--color-surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.25rem;
+    }
+    section h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--color-primary);
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--color-border);
+    }
+
+    #universe-panel   { grid-column: 1 / -1; }
+    #expression-panel { grid-column: 1 / -1; }
+    #result-panel     { grid-column: 1 / -1; }
+
+    /* ── Form Controls ──────────────────────────── */
+    .input-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      min-width: 150px;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      color: var(--color-text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus { border-color: var(--color-primary); }
+
+    button {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: background 0.15s, transform 0.1s;
+    }
+    button:active { transform: scale(0.97); }
+
+    .btn-primary { background: var(--color-primary); color: white; }
+    .btn-primary:hover { background: var(--color-primary-dark); }
+
+    .btn-secondary {
+      background: var(--color-bg);
+      color: var(--color-text);
+      border: 1px solid var(--color-border);
+    }
+    .btn-secondary:hover { background: var(--color-border); }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--color-error);
+      border: 1px solid var(--color-error);
+      padding: 0.4rem 0.6rem;
+      font-size: 0.8rem;
+    }
+    .btn-danger:hover { background: var(--color-error-bg); }
+
+    /* ── Universe Display ───────────────────────── */
+    #universe-display {
+      font-family: monospace;
+      font-size: 0.9rem;
+      color: var(--color-text-muted);
+      margin-top: 0.5rem;
+      min-height: 1.2em;
+    }
+
+    /* ── Set Cards ──────────────────────────────── */
+    #sets-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .set-card {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 0.75rem;
+      background: var(--color-bg);
+      border-radius: var(--radius);
+      border: 1px solid var(--color-border);
+      flex-wrap: wrap;
+    }
+
+    .set-label {
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--color-primary);
+      min-width: 1.5rem;
+      text-align: center;
+    }
+
+    .set-display {
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
+    }
+
+    /* ── Operator Buttons ───────────────────────── */
+    #operator-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 0.65rem;
+    }
+
+    .btn-op {
+      background: var(--color-primary);
+      color: white;
+      padding: 0.35rem 0.85rem;
+      font-size: 0.95rem;
+      border-radius: 20px;
+    }
+    .btn-op:hover { background: var(--color-primary-dark); }
+
+    .btn-paren {
+      background: #7c3aed;
+      color: white;
+      padding: 0.35rem 0.85rem;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 20px;
+    }
+    .btn-paren:hover { background: #6d28d9; }
+
+    .btn-clear {
+      background: transparent;
+      color: var(--color-error);
+      border: 1px solid var(--color-error);
+      border-radius: 20px;
+      padding: 0.35rem 0.85rem;
+    }
+    .btn-clear:hover { background: var(--color-error-bg); }
+
+    /* ── Set Shortcut Buttons ───────────────────── */
+    #set-shortcut-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 0.65rem;
+      min-height: 1.8rem;
+    }
+
+    .btn-set-shortcut {
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #86efac;
+      border-radius: 20px;
+      padding: 0.3rem 0.85rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+    .btn-set-shortcut:hover { background: #dcfce7; }
+
+    /* ── Expression Input ───────────────────────── */
+    #expression-input-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    #expression-input {
+      font-size: 1.1rem;
+      font-family: monospace;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Result Panel ───────────────────────────── */
+    #result-panel {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+    }
+    #result-panel h2 { color: #166534; border-bottom-color: #bbf7d0; }
+    #result-panel.hidden { display: none; }
+
+    #result-set-display {
+      font-family: monospace;
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #166534;
+      text-align: center;
+      padding: 1rem;
+      background: white;
+      border-radius: var(--radius);
+      border: 1px solid #bbf7d0;
+      margin-bottom: 0.75rem;
+      word-break: break-all;
+    }
+
+    #result-cardinality {
+      font-family: monospace;
+      font-size: 1rem;
+      color: #166534;
+      text-align: center;
+      margin-bottom: 0.75rem;
+    }
+
+    #result-conclusion {
+      font-size: 0.95rem;
+      color: var(--color-text);
+      line-height: 1.7;
+      padding: 0.75rem 1rem;
+      background: white;
+      border-radius: var(--radius);
+      border: 1px solid #bbf7d0;
+    }
+
+    /* ── Footer ─────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      color: var(--color-text-muted);
+      font-size: 0.8rem;
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 700px) {
+      #app { grid-template-columns: 1fr; }
+      #universe-panel, #expression-panel, #result-panel { grid-column: 1; }
+      header h1 { font-size: 1.3rem; }
+      #result-set-display { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Calculadora de Teoría de Conjuntos</h1>
+  <p>Matemática Discreta &mdash; CENFOTEC</p>
+</header>
+
+<div id="error-banner" class="hidden">
+  ⚠&nbsp;<span id="error-message"></span>
+</div>
+
+<div id="app">
+
+  <!-- ── Universo ─────────────────────────────── -->
+  <section id="universe-panel">
+    <h2>Universo U</h2>
+    <div class="input-row">
+      <input type="text" id="universe-input"
+             placeholder="Ej: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10" />
+      <button class="btn-primary" id="universe-save-btn">Guardar U</button>
+    </div>
+    <div id="universe-display"></div>
+  </section>
+
+  <!-- ── Conjuntos ────────────────────────────── -->
+  <section id="sets-panel">
+    <h2>Conjuntos</h2>
+    <div id="sets-container"></div>
+    <button class="btn-secondary" id="add-set-btn">+ Agregar conjunto</button>
+  </section>
+
+  <!-- ── Expresión ────────────────────────────── -->
+  <section id="expression-panel">
+    <h2>Expresión</h2>
+    <div id="operator-buttons">
+      <button class="btn-op"    data-op="∪">∪ Unión</button>
+      <button class="btn-op"    data-op="∩">∩ Intersección</button>
+      <button class="btn-op"    data-op=" - ">− Diferencia</button>
+      <button class="btn-op"    data-op="△">△ Dif. Simétrica</button>
+      <button class="btn-op"    data-op="'">'  Complemento</button>
+      <button class="btn-paren" data-op="(">(</button>
+      <button class="btn-paren" data-op=")">)</button>
+      <button class="btn-clear" id="clear-expr-btn">✕ Limpiar</button>
+    </div>
+    <div id="set-shortcut-buttons"></div>
+    <div id="expression-input-row">
+      <input type="text" id="expression-input"
+             placeholder="Ej: (A ∪ B) ∩ C'"
+             autocomplete="off" spellcheck="false" />
+      <button class="btn-primary" id="evaluate-btn">Evaluar →</button>
+    </div>
+  </section>
+
+  <!-- ── Resultado ────────────────────────────── -->
+  <section id="result-panel" class="hidden">
+    <h2>Resultado</h2>
+    <div id="result-set-display"></div>
+    <div id="result-cardinality"></div>
+    <div id="result-conclusion"></div>
+  </section>
+
+</div>
+
+<footer>Calculadora de Conjuntos &middot; Matemática Discreta &middot; CENFOTEC</footer>
+
+<script>
+'use strict';
+
+// ── Custom Error Classes ──────────────────────────────────────────────────────
+
+class ParseError extends Error {
+  constructor(msg) { super(msg); this.name = 'ParseError'; }
+}
+
+class SetEvalError extends Error {
+  constructor(msg) { super(msg); this.name = 'SetEvalError'; }
+}
+
+// ── Token Types ───────────────────────────────────────────────────────────────
+
+const TT = {
+  IDENT:      'IDENT',
+  UNION:      'UNION',
+  INTERSECT:  'INTERSECT',
+  DIFF:       'DIFF',
+  SYMDIFF:    'SYMDIFF',
+  COMPLEMENT: 'COMPLEMENT',
+  LPAREN:     'LPAREN',
+  RPAREN:     'RPAREN',
+  EOF:        'EOF',
+};
+
+// ── Tokenizer ─────────────────────────────────────────────────────────────────
+
+const Tokenizer = {
+  tokenize(input) {
+    const tokens = [];
+    let i = 0;
+    while (i < input.length) {
+      const ch = input[i];
+      if (/\s/.test(ch)) { i++; continue; }
+      if (/[A-Z]/.test(ch)) {
+        tokens.push({ type: TT.IDENT, name: ch, pos: i }); i++;
+      } else if (ch === '\u222A' || ch === '|') {
+        tokens.push({ type: TT.UNION, pos: i }); i++;
+      } else if (ch === '\u2229' || ch === '&') {
+        tokens.push({ type: TT.INTERSECT, pos: i }); i++;
+      } else if (ch === '-' || ch === '\\') {
+        tokens.push({ type: TT.DIFF, pos: i }); i++;
+      } else if (ch === '\u25B3' || ch === '^') {
+        tokens.push({ type: TT.SYMDIFF, pos: i }); i++;
+      } else if (ch === "'") {
+        tokens.push({ type: TT.COMPLEMENT, pos: i }); i++;
+      } else if (ch === '(') {
+        tokens.push({ type: TT.LPAREN, pos: i }); i++;
+      } else if (ch === ')') {
+        tokens.push({ type: TT.RPAREN, pos: i }); i++;
+      } else {
+        throw new ParseError(`Carácter inesperado '${ch}' en posición ${i + 1}.`);
+      }
+    }
+    tokens.push({ type: TT.EOF });
+    return tokens;
+  }
+};
+
+// ── Parser (Recursive Descent) ────────────────────────────────────────────────
+// Precedence (highest → lowest):
+//   postfix complement (A')  >  intersection (∩)  >  difference (-)
+//   >  symmetric difference (△)  >  union (∪)
+
+const Parser = {
+  parse(tokens) {
+    this._tokens = tokens;
+    this._pos = 0;
+    const ast = this._parseUnion();
+    if (this._peek().type !== TT.EOF) {
+      const tok = this._peek();
+      throw new ParseError(
+        `Token inesperado en posición ${tok.pos + 1}. ¿Falta un operador?`
+      );
+    }
+    return ast;
+  },
+
+  _peek()    { return this._tokens[this._pos]; },
+  _consume() { return this._tokens[this._pos++]; },
+
+  _expect(type) {
+    const tok = this._peek();
+    if (tok.type !== type) {
+      throw new ParseError(
+        `Se esperaba '${type}' pero se encontró '${tok.type}'` +
+        (tok.pos !== undefined ? ` en posición ${tok.pos + 1}` : '') + '.'
+      );
+    }
+    return this._consume();
+  },
+
+  _parseUnion() {
+    let left = this._parseSymDiff();
+    while (this._peek().type === TT.UNION) {
+      this._consume();
+      const right = this._parseSymDiff();
+      left = { type: 'BinaryOp', op: 'UNION', left, right };
+    }
+    return left;
+  },
+
+  _parseSymDiff() {
+    let left = this._parseDiff();
+    while (this._peek().type === TT.SYMDIFF) {
+      this._consume();
+      const right = this._parseDiff();
+      left = { type: 'BinaryOp', op: 'SYMDIFF', left, right };
+    }
+    return left;
+  },
+
+  _parseDiff() {
+    let left = this._parseIntersect();
+    while (this._peek().type === TT.DIFF) {
+      this._consume();
+      const right = this._parseIntersect();
+      left = { type: 'BinaryOp', op: 'DIFF', left, right };
+    }
+    return left;
+  },
+
+  _parseIntersect() {
+    let left = this._parsePostfix();
+    while (this._peek().type === TT.INTERSECT) {
+      this._consume();
+      const right = this._parsePostfix();
+      left = { type: 'BinaryOp', op: 'INTERSECT', left, right };
+    }
+    return left;
+  },
+
+  _parsePostfix() {
+    let node = this._parsePrimary();
+    while (this._peek().type === TT.COMPLEMENT) {
+      this._consume();
+      node = { type: 'Complement', operand: node };
+    }
+    return node;
+  },
+
+  _parsePrimary() {
+    const tok = this._peek();
+    if (tok.type === TT.IDENT) {
+      this._consume();
+      return { type: 'Identifier', name: tok.name };
+    }
+    if (tok.type === TT.LPAREN) {
+      this._consume();
+      const expr = this._parseUnion();
+      this._expect(TT.RPAREN);
+      return expr;
+    }
+    if (tok.type === TT.EOF) {
+      throw new ParseError(
+        'Expresión incompleta: se esperaba un conjunto o un paréntesis.'
+      );
+    }
+    throw new ParseError(
+      `Se esperaba un conjunto o '(' pero se encontró '${tok.type}'` +
+      (tok.pos !== undefined ? ` en posición ${tok.pos + 1}` : '') + '.'
+    );
+  },
+};
+
+// ── SetOps ────────────────────────────────────────────────────────────────────
+
+const SetOps = {
+  union(A, B) {
+    return new Set([...A, ...B]);
+  },
+  intersection(A, B) {
+    return new Set([...A].filter(x => B.has(x)));
+  },
+  difference(A, B) {
+    return new Set([...A].filter(x => !B.has(x)));
+  },
+  complement(A, U) {
+    return new Set([...U].filter(x => !A.has(x)));
+  },
+  symmetricDifference(A, B) {
+    return new Set([
+      ...[...A].filter(x => !B.has(x)),
+      ...[...B].filter(x => !A.has(x)),
+    ]);
+  },
+  format(S) {
+    if (S.size === 0) return '∅';
+    const arr = [...S];
+    const allNumeric = arr.every(x => x.trim() !== '' && !isNaN(Number(x)));
+    const sorted = allNumeric
+      ? arr.sort((a, b) => Number(a) - Number(b))
+      : arr.sort((a, b) => a.localeCompare(b));
+    return `{${sorted.join(', ')}}`;
+  },
+};
+
+// ── SetStore ──────────────────────────────────────────────────────────────────
+
+const SetStore = (() => {
+  const _store = new Map();
+  return {
+    define(name, elements) {
+      _store.set(name, new Set(elements.map(e => String(e).trim())));
+    },
+    get(name)    { return _store.get(name) ?? null; },
+    remove(name) { _store.delete(name); },
+    list()       { return [..._store.entries()].map(([name, set]) => ({ name, set })); },
+  };
+})();
+
+// ── Evaluator ─────────────────────────────────────────────────────────────────
+
+const Evaluator = {
+  evaluate(node) {
+    switch (node.type) {
+      case 'Identifier': {
+        const s = SetStore.get(node.name);
+        if (!s) throw new SetEvalError(
+          `El conjunto ${node.name} no está definido. Defínalo antes de evaluar.`
+        );
+        return s;
+      }
+      case 'Complement': {
+        const U = SetStore.get('U');
+        if (!U) throw new SetEvalError(
+          'El universo U no está definido. Defínalo para usar el complemento.'
+        );
+        return SetOps.complement(this.evaluate(node.operand), U);
+      }
+      case 'BinaryOp': {
+        const left  = this.evaluate(node.left);
+        const right = this.evaluate(node.right);
+        switch (node.op) {
+          case 'UNION':     return SetOps.union(left, right);
+          case 'INTERSECT': return SetOps.intersection(left, right);
+          case 'DIFF':      return SetOps.difference(left, right);
+          case 'SYMDIFF':   return SetOps.symmetricDifference(left, right);
+        }
+      }
+    }
+  }
+};
+
+// ── ConclusionGen ─────────────────────────────────────────────────────────────
+
+const ConclusionGen = {
+  generate(ast, resultSet) {
+    const exprDesc  = this._describe(ast);
+    const formatted = SetOps.format(resultSet);
+    const card      = resultSet.size;
+    const cardText  = card === 0
+      ? 'El resultado es el conjunto vacío (∅), con cardinalidad 0.'
+      : card === 1
+        ? 'El conjunto resultado tiene cardinalidad |R| = 1 (contiene un único elemento).'
+        : `El conjunto resultado tiene cardinalidad |R| = ${card}.`;
+    return `Se calculó ${exprDesc}. El conjunto resultante es ${formatted}. ${cardText}`;
+  },
+
+  _describe(node) {
+    switch (node.type) {
+      case 'Identifier':
+        return `el conjunto ${node.name}`;
+      case 'Complement':
+        return `el complemento de ${this._describe(node.operand)} con respecto al universo U`;
+      case 'BinaryOp': {
+        const l = this._describe(node.left);
+        const r = this._describe(node.right);
+        switch (node.op) {
+          case 'UNION':     return `la unión de ${l} y ${r}`;
+          case 'INTERSECT': return `la intersección de ${l} y ${r}`;
+          case 'DIFF':      return `la diferencia entre ${l} y ${r}`;
+          case 'SYMDIFF':   return `la diferencia simétrica entre ${l} y ${r}`;
+        }
+      }
+    }
+  },
+};
+
+// ── App Controller ────────────────────────────────────────────────────────────
+
+const App = {
+  _usedLetters: new Set(),
+
+  init() {
+    this._bindUniversePanel();
+    this._bindSetsPanel();
+    this._bindExpressionPanel();
+    this._addSet(); // start with set A already present
+  },
+
+  // ── Universe ─────────────────────────────────────────────────────
+
+  _bindUniversePanel() {
+    document.getElementById('universe-save-btn').addEventListener('click', () => {
+      this._saveUniverse();
+    });
+    document.getElementById('universe-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') this._saveUniverse();
+    });
+  },
+
+  _saveUniverse() {
+    const raw = document.getElementById('universe-input').value.trim();
+    const elements = this._parseElements(raw);
+    if (!elements) {
+      this._showError('El universo U no puede estar vacío.');
+      return;
+    }
+    SetStore.define('U', elements);
+    document.getElementById('universe-display').textContent =
+      `U = ${SetOps.format(SetStore.get('U'))}`;
+    this._hideError();
+  },
+
+  // ── Sets ──────────────────────────────────────────────────────────
+
+  _bindSetsPanel() {
+    document.getElementById('add-set-btn').addEventListener('click', () => {
+      this._addSet();
+    });
+  },
+
+  _addSet() {
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').filter(l => l !== 'U');
+    const next = letters.find(l => !this._usedLetters.has(l));
+    if (!next) {
+      this._showError('Se alcanzó el límite máximo de conjuntos (A–Z, excepto U).');
+      return;
+    }
+    this._usedLetters.add(next);
+    document.getElementById('sets-container').appendChild(this._createSetCard(next));
+    this._updateSetShortcuts();
+  },
+
+  _createSetCard(name) {
+    const card = document.createElement('div');
+    card.className = 'set-card';
+    card.dataset.name = name;
+
+    const label = document.createElement('span');
+    label.className = 'set-label';
+    label.textContent = name;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'set-input';
+    input.placeholder = 'Ej: 1, 2, 3';
+    input.style.flex = '1';
+    input.style.minWidth = '120px';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'btn-primary';
+    saveBtn.textContent = 'Guardar';
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'btn-danger';
+    removeBtn.title = `Eliminar conjunto ${name}`;
+    removeBtn.textContent = '✕';
+
+    const display = document.createElement('span');
+    display.className = 'set-display';
+
+    const save = () => {
+      const raw = input.value.trim();
+      const elements = this._parseElements(raw);
+      if (!elements) {
+        this._showError(`El conjunto ${name} no puede estar vacío.`);
+        return;
+      }
+      SetStore.define(name, elements);
+      display.textContent = `= ${SetOps.format(SetStore.get(name))}`;
+      this._hideError();
+    };
+
+    saveBtn.addEventListener('click', save);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
+
+    removeBtn.addEventListener('click', () => {
+      SetStore.remove(name);
+      this._usedLetters.delete(name);
+      card.remove();
+      this._updateSetShortcuts();
+    });
+
+    card.append(label, input, saveBtn, removeBtn, display);
+    return card;
+  },
+
+  // ── Expression ────────────────────────────────────────────────────
+
+  _bindExpressionPanel() {
+    document.querySelectorAll('[data-op]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this._insertAtCursor(btn.dataset.op);
+      });
+    });
+
+    document.getElementById('clear-expr-btn').addEventListener('click', () => {
+      document.getElementById('expression-input').value = '';
+      this._hideError();
+      document.getElementById('result-panel').classList.add('hidden');
+    });
+
+    document.getElementById('evaluate-btn').addEventListener('click', () => {
+      this._evaluate();
+    });
+
+    const exprInput = document.getElementById('expression-input');
+    exprInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') this._evaluate();
+    });
+    exprInput.addEventListener('input', () => this._hideError());
+  },
+
+  _insertAtCursor(text) {
+    const input = document.getElementById('expression-input');
+    const start = input.selectionStart;
+    const end   = input.selectionEnd;
+    input.value = input.value.slice(0, start) + text + input.value.slice(end);
+    const pos = start + text.length;
+    input.setSelectionRange(pos, pos);
+    input.focus();
+  },
+
+  _updateSetShortcuts() {
+    const container = document.getElementById('set-shortcut-buttons');
+    container.innerHTML = '';
+    [...this._usedLetters].sort().forEach(name => {
+      const btn = document.createElement('button');
+      btn.className = 'btn-set-shortcut';
+      btn.textContent = name;
+      btn.title = `Insertar ${name}`;
+      btn.addEventListener('click', () => this._insertAtCursor(name));
+      container.appendChild(btn);
+    });
+  },
+
+  // ── Evaluate ──────────────────────────────────────────────────────
+
+  _evaluate() {
+    const raw = document.getElementById('expression-input').value.trim();
+    if (!raw) return;
+    try {
+      const tokens     = Tokenizer.tokenize(raw);
+      const ast        = Parser.parse(tokens);
+      const result     = Evaluator.evaluate(ast);
+      const conclusion = ConclusionGen.generate(ast, result);
+      this._renderResult(result, conclusion);
+    } catch (e) {
+      this._showError(e.message);
+      document.getElementById('result-panel').classList.add('hidden');
+    }
+  },
+
+  _renderResult(set, conclusion) {
+    this._hideError();
+    document.getElementById('result-set-display').textContent  = SetOps.format(set);
+    document.getElementById('result-cardinality').textContent  = `|R| = ${set.size}`;
+    document.getElementById('result-conclusion').textContent   = conclusion;
+    const panel = document.getElementById('result-panel');
+    panel.classList.remove('hidden');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  },
+
+  // ── Helpers ───────────────────────────────────────────────────────
+
+  _parseElements(raw) {
+    if (!raw) return null;
+    const els = raw.split(',').map(e => e.trim()).filter(e => e !== '');
+    return els.length > 0 ? els : null;
+  },
+
+  _showError(msg) {
+    document.getElementById('error-message').textContent = msg;
+    document.getElementById('error-banner').classList.remove('hidden');
+  },
+
+  _hideError() {
+    document.getElementById('error-banner').classList.add('hidden');
+  },
+};
+
+document.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+
+</body>
+</html>
