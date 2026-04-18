@@ -34,6 +34,18 @@ const App = {
       this._showError('El universo U no puede estar vacío.');
       return;
     }
+    const newU = new Set(elements.map(e => String(e).trim()));
+    const violations = SetStore.list()
+      .filter(({ name }) => name !== 'U')
+      .map(({ name, set }) => ({ name, outside: [...set].filter(x => !newU.has(x)) }))
+      .filter(v => v.outside.length > 0);
+    if (violations.length > 0) {
+      const detail = violations
+        .map(v => `${v.name} contiene {${v.outside.join(', ')}}`)
+        .join('; ');
+      this._showError(`No se puede definir U: ${detail} fuera del universo propuesto.`);
+      return;
+    }
     SetStore.define('U', elements);
     document.getElementById('universe-display').textContent =
       `U = ${SetOps.format(SetStore.get('U'))}`;
@@ -94,6 +106,16 @@ const App = {
       if (!elements) {
         this._showError(`El conjunto ${name} no puede estar vacío.`);
         return;
+      }
+      const U = SetStore.get('U');
+      if (U) {
+        const outside = elements.map(e => String(e).trim()).filter(x => !U.has(x));
+        if (outside.length > 0) {
+          this._showError(
+            `El conjunto ${name} contiene elementos fuera del universo U: {${outside.join(', ')}}.`
+          );
+          return;
+        }
       }
       SetStore.define(name, elements);
       display.textContent = `= ${SetOps.format(SetStore.get(name))}`;
